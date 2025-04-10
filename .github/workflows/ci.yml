@@ -1,0 +1,35 @@
+name: CI Python Docker URL Param
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Étape de construction de l'image Docker
+    - name: Build Docker image
+      run: docker build -t myapp-ci:${{ github.sha }} .
+
+    # Étape d'exécution des tests DANS l'image construite
+    - name: Run tests inside Docker image
+      run: docker run --rm myapp-ci:${{ github.sha }} pytest
+
+    # Étape de connexion au registre Docker fourni par le formateur
+    - name: Login to Docker Registry
+      run: echo "testpassword" | docker login dfs-antoine.stagiairesmns.fr:5001 -u testuser --password-stdin
+      
+    # Étape de construction de l'image Docker avec le tag pour ce registre
+    - name: Build Docker Stable image
+      run: docker build -t dfs-antoine.stagiairesmns.fr:5001/myapp-ci:stable .
+      
+    # Envoi de l'image sur le registre privé
+    - name: Push Image on Registry
+      run: docker push dfs-antoine.stagiairesmns.fr:5001/myapp-ci:stable
